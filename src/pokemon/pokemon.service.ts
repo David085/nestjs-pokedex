@@ -10,6 +10,7 @@ import { UpdatePokemonDto } from './dto/update-pokemon.dto';
 import { Pokemon } from './entities/pokemon.entity';
 import { isValidObjectId, Model } from 'mongoose';
 import e from 'express';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 
 @Injectable()
 export class PokemonService {
@@ -25,12 +26,14 @@ export class PokemonService {
 
       return pokemon;
     } catch (error) {
-      this.handleException(error)
+      this.handleException(error);
     }
   }
 
-  findAll() {
-    return `This action returns all pokemon`;
+  findAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    return this.pokemonModel.find().limit(limit).skip(offset);
   }
 
   async findOne(id: string) {
@@ -48,20 +51,21 @@ export class PokemonService {
       pokemon = await this.pokemonModel.findOne({ name: id.toLowerCase });
     }
 
-    if (!pokemon) throw new NotFoundException(`Pokemon with id ${id} not found`);
+    if (!pokemon)
+      throw new NotFoundException(`Pokemon with id ${id} not found`);
 
     return pokemon;
   }
 
   async update(term: string, updatePokemonDto: UpdatePokemonDto) {
-
     const pokemon = await this.findOne(term);
-    if (updatePokemonDto.name) updatePokemonDto.name = updatePokemonDto.name.toLowerCase();
+    if (updatePokemonDto.name)
+      updatePokemonDto.name = updatePokemonDto.name.toLowerCase();
 
     try {
-      await pokemon.updateOne(updatePokemonDto, {new: true});
-  
-      return {...pokemon.toJSON(), ...updatePokemonDto};
+      await pokemon.updateOne(updatePokemonDto, { new: true });
+
+      return { ...pokemon.toJSON(), ...updatePokemonDto };
     } catch (error) {
       this.handleException(error);
     }
@@ -70,11 +74,16 @@ export class PokemonService {
   async remove(id: string) {
     // const pokemon = await this.findOne(id);
     // await pokemon.deleteOne();
-    const {deletedCount} = await this.pokemonModel.deleteOne({ _id: id });
+    const { deletedCount } = await this.pokemonModel.deleteOne({ _id: id });
 
     if (deletedCount === 0)
-      throw new BadRequestException(`Pokemon with id ${id} not found`)
+      throw new BadRequestException(`Pokemon with id ${id} not found`);
 
+    return;
+  }
+
+  async deleteMany() {
+    await this.pokemonModel.deleteMany({});
     return;
   }
 
@@ -89,6 +98,4 @@ export class PokemonService {
       `Error creating the pokemon ${error.message}`,
     );
   }
-
 }
-
